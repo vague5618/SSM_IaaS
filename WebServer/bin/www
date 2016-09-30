@@ -1,0 +1,318 @@
+#!/usr/bin/env node
+
+/**
+ * Module dependencies.
+ */
+
+var redisClient = require('../util/redis.js');
+
+var cluster = require('cluster');
+
+if ( cluster.isMaster ) {
+
+  var app = require('../app');
+  var debug = require('debug')('PaaS_Server:server');
+  var http = require('http');
+
+  /**
+   * Get port from environment and store in Express.
+   */
+
+  var port = normalizePort(process.env.PORT || '3000');
+  app.set('port', port);
+
+
+  /**
+   * Create HTTP server.
+   */
+
+  var server = http.createServer(app);
+
+  /**
+   * Listen on provided port, on all network interfaces.
+   */
+
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', onListening);
+
+  /**
+   * Normalize a port into a number, string, or false.
+   */
+
+  function normalizePort(val) {
+    var port = parseInt(val, 10);
+
+    if (isNaN(port)) {
+      // named pipe
+      return val;
+    }
+
+    if (port >= 0) {
+      // port number
+      return port;
+    }
+
+    return false;
+  }
+
+  /**
+   * Event listener for HTTP server "error" event.
+   */
+
+  function onError(error) {
+    if (error.syscall !== 'listen') {
+      throw error;
+    }
+
+    var bind = typeof port === 'string'
+        ? 'Pipe ' + port
+        : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+      case 'EACCES':
+        console.error(bind + ' requires elevated privileges');
+        process.exit(1);
+        break;
+      case 'EADDRINUSE':
+        console.error(bind + ' is already in use');
+        process.exit(1);
+        break;
+      default:
+        throw error;
+    }
+  }
+
+  /**
+   * Event listener for HTTP server "listening" event.
+   */
+
+  function onListening() {
+    var addr = server.address();
+    var bind = typeof addr === 'string'
+        ? 'pipe ' + addr
+        : 'port ' + addr.port;
+    debug('Listening on ' + bind);
+  }
+
+  var cpuCount = require('os').cpus().length;
+
+  // Create a worker for each CPU
+  for (var i = 0; i < cpuCount; i += 1) {
+      cluster.fork();
+  }
+}
+else{
+
+  var IMAGE_STREAM_SECRET = 1234,
+      IMAGE_STREAM_PORT = 8000 + cluster.worker.id,
+      IMAGE_WEBSOCKET_PORT = 9000 + cluster.worker.id,
+      STREAM_MAGIC_BYTES = 'jsmp'; // Must be 4 bytes
+
+  var width = 768,
+      height = 1280;
+
+/////////// ImageSocket Server/////////////////
+
+  var ImagesSocketServer = new (require('ws').Server)({port: IMAGE_WEBSOCKET_PORT});
+
+  ImagesSocketServer.on('connection', function (socket) {
+    // Send magic bytes and video size to the newly connected socket
+    // struct { char magic[4]; unsigned short width, height;}
+
+    var streamHeader = new Buffer(8);
+    streamHeader.write(STREAM_MAGIC_BYTES);
+    streamHeader.writeUInt16BE(width, 4);
+    streamHeader.writeUInt16BE(height, 6);
+    socket.send(streamHeader, {binary: true});
+
+    console.log('ImagesSocketClient Connection (' + ImagesSocketServer.clients.length + ' total)');
+
+    socket.on('close', function (code, message) {
+
+      console.log('Disconnected ImagesSocketClient (' + ImagesSocketServer.clients.length + ' total)');
+
+      redisClient.setSession('sessionList2','port'+cluster.worker.id, null, function(result)
+      {
+        console.log("del Session = "+result);
+      });
+
+    });
+  });
+
+  ImagesSocketServer.broadcast = function (data, opts) {
+    for (var i in this.clients) {
+      if (this.clients[i].readyState == 1) {
+        this.clients[i].send(data, opts);
+      }
+      else {
+        console.log('Error: Client (' + i + ') not connected.');
+      }
+    }
+  };
+
+// HTTP Server to accept incomming MPEG Stream
+  var ImageStreamServer = require('http').createServer(function (request, response) {
+    var params = request.url.substr(1).split('/');
+
+    if (params[0] == IMAGE_STREAM_SECRET) {
+      //
+      //console.log(
+      //    'ImageStreamServer Connected: ' + request.socket.remoteAddress +
+      //    ':' + request.socket.remotePort + ' size: ' + width + 'x' + height
+      //);
+      request.on('data', function (data) {
+        ImagesSocketServer.broadcast(data, {binary: true});
+      });
+    }
+    else {
+      console.log(
+          'Failed ImageStreamServer Connection: ' + request.socket.remoteAddress +
+          request.socket.remotePort + ' - wrong secret.'
+      );
+      response.end();
+    }
+  }).listen(IMAGE_STREAM_PORT);
+
+  console.log('Listening for ImageStream on http://127.0.0.1:' + IMAGE_STREAM_PORT + '/');
+  console.log('Awaiting ImageWebSocket connections on ws://127.0.0.1:' + IMAGE_WEBSOCKET_PORT + '/');
+
+
+  ////////////////////////////////////////////////////////
+  /* Audio_stream */
+  ////////////////////////////////////////////////////////
+
+
+  /**
+   * Created by ssm-jay on 16. 1. 14.
+   */
+
+
+  ///////////////////////////////////////////////////////////////
+
+  var BinaryServer = require('binaryjs').BinaryServer;
+  var fs = require('fs');
+
+  var AUDIO_STREAM_SECRET = 1234,
+      AUDIO_STREAM_PORT = 8500 + cluster.worker.id,
+      AUDIO_WEBSOCKET_PORT = 9500 + cluster.worker.id;
+
+
+  var AudioSocketServer = BinaryServer({port: AUDIO_WEBSOCKET_PORT});
+  var Audio_stream;
+  var target_client;
+
+
+  AudioSocketServer.on('connection', function (client) {
+
+    console.log('AudioSocketClient Connection');
+
+    target_client = client;
+
+    Audio_stream = client.createStream();
+
+    client.on('close', function (code, message) {
+      console.log('Disconnected AudioSocketClient (' + AudioSocketServer.clients.length + ' total)');
+      Audio_stream = null;
+    });
+
+    client.on('error', function (code, message) {
+      console.error('Error in Connection');
+    });
+
+  });
+
+  var AudioStreamServer = require('http').createServer(function (request, response) {
+    var params = request.url.substr(1).split('/');
+
+    if (params[0] == AUDIO_STREAM_SECRET) {
+
+      request.on('data', function (data) {
+
+        if (Audio_stream != null) {
+          Audio_stream.write(data);
+        }
+      });
+
+      request.on('close', function () {
+       // console.log("close====");
+        if(Audio_stream !=null) {
+          Audio_stream.end();
+        }
+      });
+
+      request.on('error', function() {
+        Audio_stream = null;
+      });
+    }
+    else {
+      console.log(
+          'Failed AudioStreamServer Connection: ' + request.socket.remoteAddress +
+          request.socket.remotePort + ' - wrong secret.'
+      );
+      response.end();
+    }
+  }).listen(AUDIO_STREAM_PORT);
+
+
+  console.log('Listening for AudioStream on http://127.0.0.1:' + AUDIO_STREAM_PORT + '/');
+  console.log('Awaiting AudioWebSocket connections on ws://127.0.0.1:' + AUDIO_WEBSOCKET_PORT + '/');
+
+
+  /////////////////////////////////////////////////////////
+  /* Event_stream */
+  /////////////////////////////////////////////////////////
+
+  var NET = require('net');
+
+  var NET_SOCKET_PORT = 7500 + cluster.worker.id;
+
+  var NET_SOCKET_TARGET;
+
+  var EventNetServer = NET.createServer(function (socket) {
+
+    console.log('EventNetServer Connection()');
+
+    NET_SOCKET_TARGET = socket;
+
+    socket.on('error', function () {
+      console.error("Error in Net");
+      NET_SOCKET_TARGET = null;
+    });
+
+    socket.on('end', function () {
+      console.log('EventNetServer disConnection()');
+      NET_SOCKET_TARGET = null;
+    });
+
+
+  }).listen(NET_SOCKET_PORT);
+
+  var EVENT_WEBSOCKET_PORT = 7000 + cluster.worker.id;
+
+  var EventSocketServer = new (require('ws').Server)({port: EVENT_WEBSOCKET_PORT});
+
+  EventSocketServer.on('connection', function (socket) {
+
+    console.log('EventSocketClient Connection (' + EventSocketServer.clients.length + ' total)');
+
+    socket.on('message', function (data) {
+
+      if (NET_SOCKET_TARGET != null) {
+        NET_SOCKET_TARGET.write(data + '\n');
+      }
+    });
+
+    socket.on('error', function () {
+      console.error("Error in Websocket port");
+    });
+
+    socket.on('close', function (code, message) {
+      if (NET_SOCKET_TARGET != null) {
+        NET_SOCKET_TARGET.end();
+      }
+      console.log('Disconnected EventSocketClient (' + EventSocketServer.clients.length + ' total)');
+    });
+  });
+}

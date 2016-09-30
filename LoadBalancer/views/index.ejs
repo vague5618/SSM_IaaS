@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns="http://www.w3.org/1999/html">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Welcome PaaS</title>
+
+  <!-- 부트스트랩 -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/css/toastr.css" rel="stylesheet"/>
+  <link rel="stylesheet" href="../public/stylesheets/cover.css" rel="stylesheet">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/2.0.1/js/toastr.js"></script>
+  <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+  <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+  <![endif]-->
+
+  <script src="../public/js/common.member.js" type="text/javascript"></script>
+  <script src="../public/lib/jquery.redirect.js" type="text/javascript"></script>
+
+</head>
+<body>
+
+<div class="site-wrapper">
+
+  <div class="site-wrapper-inner">
+
+    <div class="cover-container">
+
+      <div class="masthead clearfix">
+        <div class="inner">
+          <h3 class="masthead-brand">MainPage</h3>
+          <nav>
+            <ul class="nav masthead-nav">
+              <li class="active"><a href="#">Home</a></li>
+              <li><a href="http://www.secmem.org/">Contact</a></li>
+            </ul>
+          </nav>
+        </div>
+      </div>
+
+      <div class="inner cover">
+        <h1 class="cover-heading">PaaS Service</h1>
+        </br></br></br>
+
+        <div class="container">
+
+          <div class="row">
+            <div class="col-md-1"></div>
+
+            <div class="col-md-5">
+
+              <div class="panel panel-default" style="background-color:transparent">
+
+                <div class="panel-body">
+
+                  <div class="page-header">
+                    <h1>Login Area</h1>
+                  </div>
+
+                  <form role="form" action="/member" method="POST">
+                    <div class="form-group">
+                      <label for="inputMemberEmail">아이디</label>
+
+                      <div class="input-group">
+                <span class="input-group-addon">
+
+                  <span class="glyphicon glyphicon-user"></span>
+
+                </span>
+                        <input type="email" class="form-control" id="inputMemberEmail" placeholder="이메일을 입력하세요">
+                      </div>
+
+                    </div>
+                    <div class="form-group">
+                      <label for="inputMemberPassword">암호</label>
+
+
+                      <div class="input-group">
+
+                 <span class="input-group-addon">
+
+                  <span class="glyphicon glyphicon-star"></span>
+
+                </span>
+                        <input type="password" class="form-control" id="inputMemberPassword" placeholder="암호">
+                      </div>
+                    </div>
+                    <div class="alert alert-danger" role="alert" id="loginAlert" style="display:none">
+                      로그인 실패, 이메일주소와 비밀번호를 확인해주세요.
+                    </div>
+                    </hr>
+
+
+                    <button type="button" class="btn btn-success" data-toggle="modal" data-target="#JoinModal">
+                      <span class="glyphicon glyphicon-ok-sign"></span>
+                      회원가입</button>
+
+                    <button type="button" class="btn btn-primary" onclick="loginMember()">
+                      <span class="glyphicon glyphicon-lock"></span>
+
+                      로그인</button>
+
+                    <p><br/></p>
+                  </form>
+                </div>
+
+
+                <!-- Modal -->
+                <div id="JoinModal" class="modal fade" aria-hidden="true">
+                  <div class="modal-dialog">
+
+                    <!-- Modal content-->
+                    <div class="modal-content">
+                      <div class="modal-header">
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                        <h4 class="modal-title">Register</h4>
+                      </div>
+
+                      <div class="modal-body">
+
+                        <form role="form">
+                          <div class="row">
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                              <div class="form-group">
+                                <input type="text" name="inputRegisterFirstname" id="inputRegisterFirstname" class="form-control input-sm" placeholder="First Name" onkeyup="registerNameCheck()">
+                              </div>
+                            </div>
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                              <div class="form-group">
+                                <input type="text" name="inputRegisterLastname" id="inputRegisterLastname" class="form-control input-sm" placeholder="Last Name" onkeyup="registerNameCheck()">
+                              </div>
+                            </div>
+                          </div>
+
+                          <div class="form-group">
+                            <input type="email" name="inputRegisterid" id="inputRegisterEmail" class="form-control input-sm" placeholder="Id" onkeyup="idCheckMember()">
+                          </div>
+
+                          <div class="row">
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                              <div class="form-group">
+                                <input type="password" name="inputRegisterPassword" id="inputRegisterPassword" class="form-control input-sm" placeholder="Password" onkeyup="registerPasswordCheck()">
+                              </div>
+                            </div>
+
+                            <div class="col-xs-6 col-sm-6 col-md-6">
+                              <div class="form-group">
+                                <input type="password" name="inputConfirmPassword" id="inputConfirmPassword" class="form-control input-sm" placeholder="Confirm Password" onkeyup="registerPasswordCheck()">
+                              </div>
+                            </div>
+                          </div>
+
+                          <input type="button" value="Register" id="btnRegister" class="btn btn-info btn-block" onclick="joinMember()">
+
+                          <br/>
+                          <div id="possibleRegistration"></div>
+                        </form>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <p class="lead">Welcome</p>
+        <p class="lead">
+          <a href="#" class="btn btn-lg btn-default">Support</a>
+        </p>
+      </div>
+
+      <div class="mastfoot">
+        <div class="inner">
+          <p><a href="http://getbootstrap.com">Bootstrap</a> <a href="https://twitter.com/mdo"></a></p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+</body>
+</html>

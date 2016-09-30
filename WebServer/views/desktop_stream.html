@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=320, initial-scale=1"/>
+    <meta charset="utf-8">
+    <title>Stream</title>
+    <style type="text/css">
+        body {
+            background: #333;
+            text-align: center;
+            margin-top: 10%;
+        }
+        #videoCanvas {
+            /* Always stretch the canvas to 640x480, regardless of its
+            internal size. */
+            position:fixed;
+            left:0;
+            top:0;
+            width:100%;
+            height:100%;
+        }
+    </style>
+
+    <script>
+
+        var target_image = null;
+        var Audio_client = null;
+        var Event_client = null;
+
+    </script>
+
+</head>
+
+<!--<script type="text/javascript" src="../common/common.process.js"></script>-->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+
+<body onload="init()" onkeydown="keydown(event)" onkeyup="keyup(event)">
+<!-- The Canvas size specified here is the "initial" internal resolution. jsmpeg will
+    change this internal resolution to whatever the source provides. The size the
+    canvas is displayed on the website is dictated by the CSS style.
+-->
+
+<canvas id="videoCanvas" >
+    <p>
+        Please use a browser that supports the Canvas Element, like
+        <a href="http://www.google.com/chrome">Chrome</a>,
+        <a href="http://www.mozilla.com/firefox/">Firefox</a>,
+        <a href="http://www.apple.com/safari/">Safari</a> or Internet Explorer 10
+    </p>
+</canvas>
+
+<script type="text/javascript" src="../public/js/connect_manager.js"></script>
+<script type="text/javascript" src="../public/lib/jsmpg.js"></script>
+<script type="text/javascript" src="../public/lib/binary.js"></script>
+<script type="text/javascript" src="../public/js/audio_stream.js"></script>
+<script type="text/javascript" src="../public/js/image_stream.js"></script>
+<script type="text/javascript" src="../public/js/desktopEvent_stream.js"></script>
+
+
+</body>
+</html>
